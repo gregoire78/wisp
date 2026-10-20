@@ -176,6 +176,8 @@ int main(int argc, char* argv[]) {
         {SendspinCodecFormat::OPUS, 2, 48000, 16},
         {SendspinCodecFormat::PCM, 2, 44100, 16},
         {SendspinCodecFormat::PCM, 2, 48000, 16},
+        {SendspinCodecFormat::PCM, 2, 48000, 24},
+        {SendspinCodecFormat::PCM, 2, 192000, 24},
     };
     // Larger ring buffer absorbs CPU scheduling jitter on the single-core ARMv6
     // without dropping encoded chunks before the sync task can decode them.
