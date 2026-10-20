@@ -9,7 +9,7 @@ BINARY=/usr/local/bin/wispd
 CONFIG_FILE=/etc/wispd.conf
 SERVICE_FILE=/etc/systemd/system/wispd.service
 SERVICE=wispd
-REPO="LeoLTM/wisp"
+REPO="gregoire78/wisp"
 ARCHIVE=wisp-linux-armv6-release.tar.gz
 
 if [[ $EUID -ne 0 ]]; then
