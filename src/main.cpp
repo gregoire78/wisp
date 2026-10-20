@@ -171,13 +171,35 @@ int main(int argc, char* argv[]) {
     // Add player role with supported audio formats
     PlayerRoleConfig player_config;
     player_config.audio_formats = {
-        {SendspinCodecFormat::FLAC, 2, 44100, 16},
-        {SendspinCodecFormat::FLAC, 2, 48000, 16},
-        {SendspinCodecFormat::OPUS, 2, 48000, 16},
-        {SendspinCodecFormat::PCM, 2, 44100, 16},
-        {SendspinCodecFormat::PCM, 2, 48000, 16},
-        {SendspinCodecFormat::PCM, 2, 48000, 24},
-        {SendspinCodecFormat::PCM, 2, 192000, 24},
+        // FLAC (sans perte, qualité CD et streaming)
+        {SendspinCodecFormat::FLAC, 2, 44100, 16},   // FLAC CD (44.1 kHz, 16 bits)
+        {SendspinCodecFormat::FLAC, 2, 48000, 16},   // FLAC streaming (48 kHz, 16 bits)
+        {SendspinCodecFormat::FLAC, 2, 44100, 24},   // FLAC haute résolution (44.1 kHz, 24 bits)
+        {SendspinCodecFormat::FLAC, 2, 48000, 24},   // FLAC studio (48 kHz, 24 bits)
+        {SendspinCodecFormat::FLAC, 2, 96000, 24},   // FLAC ultra-haute résolution (96 kHz, 24 bits)
+        {SendspinCodecFormat::FLAC, 2, 192000, 24},  // FLAC mastering (192 kHz, 24 bits)
+    
+        // OPUS (compressé, faible latence, idéal pour le streaming)
+        {SendspinCodecFormat::OPUS, 2, 48000, 16},   // OPUS standard (48 kHz, 16 bits)
+        {SendspinCodecFormat::OPUS, 2, 48000, 24},   // OPUS haute qualité (48 kHz, 24 bits)
+    
+        // PCM (non compressé, qualité maximale)
+        {SendspinCodecFormat::PCM, 2, 44100, 16},    // PCM CD (44.1 kHz, 16 bits)
+        {SendspinCodecFormat::PCM, 2, 48000, 16},    // PCM streaming (48 kHz, 16 bits)
+        {SendspinCodecFormat::PCM, 2, 44100, 24},    // PCM haute résolution (44.1 kHz, 24 bits)
+        {SendspinCodecFormat::PCM, 2, 48000, 24},    // PCM studio (48 kHz, 24 bits)
+        {SendspinCodecFormat::PCM, 2, 88200, 24},    // PCM double CD (88.2 kHz, 24 bits)
+        {SendspinCodecFormat::PCM, 2, 96000, 24},    // PCM haute résolution (96 kHz, 24 bits)
+        {SendspinCodecFormat::PCM, 2, 176400, 24},   // PCM quad CD (176.4 kHz, 24 bits)
+        {SendspinCodecFormat::PCM, 2, 192000, 24},   // PCM ultra-haute résolution (192 kHz, 24 bits)
+        {SendspinCodecFormat::PCM, 2, 352800, 24},   // PCM mastering (352.8 kHz, 24 bits)
+        {SendspinCodecFormat::PCM, 2, 384000, 24},   // PCM extrême (384 kHz, 24 bits)
+    
+        // Formats multi-canaux (pour les systèmes surround)
+        {SendspinCodecFormat::FLAC, 6, 44100, 16},   // FLAC 5.1 (44.1 kHz, 16 bits)
+        {SendspinCodecFormat::FLAC, 6, 48000, 24},   // FLAC 5.1 (48 kHz, 24 bits)
+        {SendspinCodecFormat::PCM, 6, 44100, 24},    // PCM 5.1 (44.1 kHz, 24 bits)
+        {SendspinCodecFormat::PCM, 6, 48000, 24},    // PCM 5.1 (48 kHz, 24 bits)
     };
     // Larger ring buffer absorbs CPU scheduling jitter on the single-core ARMv6
     // without dropping encoded chunks before the sync task can decode them.
