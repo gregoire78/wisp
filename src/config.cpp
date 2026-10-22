@@ -62,6 +62,17 @@ bool load_config(const std::string& path, Config& config) {
             config.name = value;
         } else if (key == "log_level") {
             config.log_level = value;
+        } else if (key == "protocol_security") {
+            if (value == "enabled" || value == "true" || value == "on") {
+                config.protocol_security = true;
+            } else if (value == "disabled" || value == "false" || value == "off") {
+                config.protocol_security = false;
+            } else {
+                fprintf(stderr, "%s:%d: protocol_security must be enabled or disabled, ignoring\n",
+                        path.c_str(), line_num);
+            }
+        } else if (key == "persistence_dir") {
+            config.persistence_dir = value;
         } else if (key == "device") {
             config.device = value;
         } else if (key == "initial_volume") {

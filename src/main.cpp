@@ -14,16 +14,91 @@
 #include <atomic>
 #include <chrono>
 #include <csignal>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <getopt.h>
 #include <memory>
 #include <string>
 #include <thread>
 #include <unistd.h>
-
+#include <vector>
 using namespace sendspin;
+
+class WispPersistenceProvider final : public SendspinPersistenceProvider {
+public:
+    explicit WispPersistenceProvider(std::filesystem::path dir) : dir_(std::move(dir)) {
+        std::error_code ec;
+        std::filesystem::create_directories(this->dir_, ec);
+        if (ec) {
+            fprintf(stderr, "Warning: failed to create persistence directory '%s': %s\n",
+                    this->dir_.string().c_str(), ec.message().c_str());
+        }
+    }
+
+    bool save_last_server_hash(uint32_t hash) override {
+        return write_uint32("last_server_hash", hash);
+    }
+
+    std::optional<uint32_t> load_last_server_hash() override {
+        return read_uint32("last_server_hash");
+    }
+
+    bool save_static_delay(uint16_t delay_ms) override {
+        return write_uint16("static_delay_ms", delay_ms);
+    }
+
+    std::optional<uint16_t> load_static_delay() override {
+        return read_uint16("static_delay_ms");
+    }
+
+private:
+    std::filesystem::path dir_;
+
+    std::filesystem::path make_path(const char* name) const {
+        return this->dir_ / name;
+    }
+
+    bool write_uint32(const char* name, uint32_t value) {
+        std::ofstream out(make_path(name), std::ios::binary | std::ios::trunc);
+        if (!out) return false;
+        const uint32_t n = value;
+        out.write(reinterpret_cast<const char*>(&n), sizeof(n));
+        return out.good();
+    }
+
+    bool write_uint16(const char* name, uint16_t value) {
+        std::ofstream out(make_path(name), std::ios::binary | std::ios::trunc);
+        if (!out) return false;
+        const uint16_t n = value;
+        out.write(reinterpret_cast<const char*>(&n), sizeof(n));
+        return out.good();
+    }
+
+    std::optional<uint32_t> read_uint32(const char* name) {
+        std::ifstream in(make_path(name), std::ios::binary);
+        if (!in) return std::nullopt;
+        uint32_t value = 0;
+        in.read(reinterpret_cast<char*>(&value), sizeof(value));
+        if (in.gcount() != static_cast<std::streamsize>(sizeof(value))) {
+            return std::nullopt;
+        }
+        return value;
+    }
+
+    std::optional<uint16_t> read_uint16(const char* name) {
+        std::ifstream in(make_path(name), std::ios::binary);
+        if (!in) return std::nullopt;
+        uint16_t value = 0;
+        in.read(reinterpret_cast<char*>(&value), sizeof(value));
+        if (in.gcount() != static_cast<std::streamsize>(sizeof(value))) {
+            return std::nullopt;
+        }
+        return value;
+    }
+};
 
 static constexpr const char* DEFAULT_CONFIG_PATH = "/etc/wispd.conf";
 static constexpr const char* VERSION = "0.2.0";
@@ -142,6 +217,19 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    if (!cfg.protocol_security) {
+        fprintf(stderr, "Warning: protocol_security is disabled in %s; Sendspin requires the protected protocol path.\n",
+                config_path.c_str());
+        fprintf(stderr, "Warning: forcing protocol_security=enabled because Noise KKpsk2 is mandatory for Sendspin.\n");
+        cfg.protocol_security = true;
+    }
+
+    std::filesystem::path persistence_dir = std::filesystem::path(cfg.persistence_dir);
+    if (!persistence_dir.is_absolute()) {
+        persistence_dir = std::filesystem::absolute(persistence_dir);
+    }
+    WispPersistenceProvider persistence_provider(persistence_dir);
+
     // Optional now-playing OLED.  Created before the client so it outlives
     // every callback that can reach it.
     std::unique_ptr<OledDisplay> display;
@@ -167,6 +255,7 @@ int main(int argc, char* argv[]) {
     client_config.software_version = VERSION;
 
     SendspinClient client(std::move(client_config));
+    client.set_persistence_provider(&persistence_provider);
 
     // Add player role with supported audio formats
     PlayerRoleConfig player_config;

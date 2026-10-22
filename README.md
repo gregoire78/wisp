@@ -70,6 +70,19 @@ sudo systemctl status wispd
 journalctl -u wispd -f
 ```
 
+## Protocol security
+
+Wisp relies on the Sendspin protocol implementation in [sendspin-cpp](https://github.com/Sendspin/sendspin-cpp). That layer enforces the protocol-level security model: Noise KKpsk2 encryption on every connection, pairing PSK handling, and stable device identity persistence for server trust and reboots.
+
+To keep the security state across restarts, Wisp now stores the identity and pairing material in a directory managed by the daemon. The default path is `/var/lib/wisp`; it is created automatically if needed. The config file exposes two explicit settings:
+
+```ini
+protocol_security = enabled
+persistence_dir = /var/lib/wisp
+```
+
+`protocol_security` is mandatory and must stay enabled; Sendspin requires the encrypted protocol path.
+
 ## Audio output
 
 The **Pi Zero W has no built-in 3.5mm audio jack**. You need an external USB soundcard (or a DAC HAT). Any cheap USB audio adapter works.

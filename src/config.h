@@ -11,6 +11,8 @@ struct Config {
     int initial_volume = -1;           // 0-100 to override hardware volume on startup; -1 = server default
     int initial_static_delay_ms = -1;  // 0-5000 ms; -1 = no initial delay
     int idle_timeout_s = 0;            // 0 = disabled (device stays open permanently)
+    bool protocol_security = true;     // mandatory for Sendspin (Noise KKpsk2)
+    std::string persistence_dir = "/var/lib/wisp"; // persistent identity / pairing state
 
     // Optional now-playing OLED display (disabled unless display is set)
     std::string display = "none";      // none, ssd1306, sh1106
