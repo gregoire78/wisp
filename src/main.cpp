@@ -20,6 +20,7 @@
 #include <filesystem>
 #include <fstream>
 #include <getopt.h>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <thread>
@@ -36,6 +37,28 @@ public:
             fprintf(stderr, "Warning: failed to create persistence directory '%s': %s\n",
                     this->dir_.string().c_str(), ec.message().c_str());
         }
+    }
+
+    std::optional<std::vector<uint8_t>> load_blob(const std::string& key) override {
+        auto path = make_path(key);
+        std::ifstream in(path, std::ios::binary);
+        if (!in) {
+            return std::nullopt;
+        }
+        std::vector<uint8_t> blob((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        return blob;
+    }
+
+    bool save_blob(const std::string& key, const uint8_t* data, size_t len) override {
+        auto path = make_path(key);
+        std::ofstream out(path, std::ios::binary | std::ios::trunc);
+        if (!out) {
+            return false;
+        }
+        if (len > 0) {
+            out.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(len));
+        }
+        return out.good();
     }
 
     bool save_last_server_hash(uint32_t hash) override {
@@ -57,7 +80,7 @@ public:
 private:
     std::filesystem::path dir_;
 
-    std::filesystem::path make_path(const char* name) const {
+    std::filesystem::path make_path(const std::string& name) const {
         return this->dir_ / name;
     }
 
@@ -200,9 +223,11 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "=================================================================\n\n");
     // --- END STARTUP LOGGING BLOCK ---
 
-    // Derive a unique, persistent client_id from /etc/machine-id (systemd).
-    // Falls back to hostname.  The spec requires this to be unique per device
-    // so that servers can track group membership and de-duplicate connections.
+    // Derive a unique, persistent client identity from /etc/machine-id (systemd).
+    // Sendspin uses a stable identity for the secure protocol stack and pairing state.
+    // We keep this value only for the local bootstrap log and to preserve the old
+    // human-facing naming. The library now derives the actual client_id from its
+    // generated X25519 static keypair and persists it via the provider.
     std::string client_id;
     {
         std::ifstream mid("/etc/machine-id");
@@ -246,9 +271,11 @@ int main(int argc, char* argv[]) {
         display = std::make_unique<OledDisplay>(oled_config, cfg.name);
     }
 
-    // Configure client
+    // Configure client. The modern Sendspin library derives the stable
+    // client_id from a persisted X25519 keypair rather than trusting an
+    // application-supplied ad hoc string. We therefore avoid setting a
+    // client_id here, and let the library persist the identity it derives.
     SendspinClientConfig client_config;
-    client_config.client_id = "wispd-" + client_id;
     client_config.name = cfg.name;
     client_config.product_name = "wisp";
     client_config.manufacturer = "wisp";
@@ -294,11 +321,11 @@ int main(int argc, char* argv[]) {
     // without dropping encoded chunks before the sync task can decode them.
     player_config.audio_buffer_capacity = 2000000;
     // With direct ALSA and snd_pcm_delay()-based timestamps, the reported
-    // playback time already accounts for the hardware buffer.  No additional
+    // playback time already accounts for the hardware buffer. No additional
     // fixed delay compensation is required.
     player_config.fixed_delay_us = AlsaPipeSink::PIPELINE_DELAY_US;
     if (cfg.initial_static_delay_ms >= 0) {
-        player_config.initial_static_delay_ms =
+        player_config.initial_output_delay_ms =
             static_cast<uint16_t>(cfg.initial_static_delay_ms);
     }
     auto& player = client.add_player(std::move(player_config));
@@ -383,8 +410,8 @@ int main(int argc, char* argv[]) {
             sink.set_muted(muted);
             if (display) display->set_muted(muted);
         }
-        void on_static_delay_changed(uint16_t delay_ms) override {
-            fprintf(stderr, ">>> Static delay changed to %u ms\n", delay_ms);
+        void on_output_delay_changed(uint16_t delay_ms) override {
+            fprintf(stderr, ">>> Output delay changed to %u ms\n", delay_ms);
         }
     };
 
