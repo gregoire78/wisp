@@ -61,22 +61,6 @@ public:
         return out.good();
     }
 
-    bool save_last_server_hash(uint32_t hash) override {
-        return write_uint32("last_server_hash", hash);
-    }
-
-    std::optional<uint32_t> load_last_server_hash() override {
-        return read_uint32("last_server_hash");
-    }
-
-    bool save_static_delay(uint16_t delay_ms) override {
-        return write_uint16("static_delay_ms", delay_ms);
-    }
-
-    std::optional<uint16_t> load_static_delay() override {
-        return read_uint16("static_delay_ms");
-    }
-
 private:
     std::filesystem::path dir_;
 
@@ -448,7 +432,7 @@ int main(int argc, char* argv[]) {
     HostNetworkProvider network_provider;
 
     player.set_listener(&player_listener);
-    player.set_static_delay_adjustable(true);
+    player.set_output_delay_adjustable(true);
     client.set_listener(&client_listener);
     client.set_network_provider(&network_provider);
 
@@ -459,9 +443,9 @@ int main(int argc, char* argv[]) {
     }
     if (display) display->start();
 
-    // Start the WebSocket server
-    if (!client.start_server()) {
-        fprintf(stderr, "Failed to start server\n");
+    // Start the client runtime and connect to the configured Sendspin server.
+    if (!client.start()) {
+        fprintf(stderr, "Failed to start Sendspin client\n");
         return 1;
     }
 
