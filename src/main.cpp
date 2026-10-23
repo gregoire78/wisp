@@ -405,6 +405,37 @@ int main(int argc, char* argv[]) {
                 fprintf(stderr, ">>> Time sync error: %.1f us\n", error);
             }
         }
+
+        void on_pairing_started(const std::string& server_id) override {
+            fprintf(stderr, ">>> Pairing started with server_id=%s\n", server_id.c_str());
+        }
+
+        void on_pairing_succeeded(const std::string& server_id) override {
+            fprintf(stderr, ">>> Pairing succeeded with server_id=%s\n", server_id.c_str());
+        }
+
+        void on_pairing_failed(const std::string& server_id, SendspinPairAbortReason reason) override {
+            fprintf(stderr, ">>> Pairing failed with server_id=%s reason=%d\n",
+                    server_id.c_str(), static_cast<int>(reason));
+        }
+
+        void on_display_pairing_code(const std::string& code,
+                                     SendspinPairingCodeFormat format) override {
+            fprintf(stderr, ">>> Pairing code: %s (format=%d)\n", code.c_str(),
+                    static_cast<int>(format));
+        }
+
+        void on_clear_pairing_code() override {
+            fprintf(stderr, ">>> Pairing code cleared\n");
+        }
+
+        void on_open_pairing_window() override {
+            fprintf(stderr, ">>> Pairing window opened; confirm the gesture to accept pairing\n");
+        }
+
+        void on_close_pairing_window() override {
+            fprintf(stderr, ">>> Pairing window closed\n");
+        }
     };
 
     struct ArmMetadataListener : MetadataRoleListener {
